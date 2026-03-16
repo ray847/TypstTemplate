@@ -1,8 +1,11 @@
+#import "@preview/cuti:0.2.1": show-cn-fakebold
+
 /* Fonts */
 #let font = (
-  formal: "Times New Roman",
-  text: "Bell MT",
-  decorative: "French Script MT"
+  formal: ("Times New Roman", "FangSong"),
+  text: ("Bell MT", "SimSun"),
+  code: ("Fira Code", "SimSun"),
+  decorative: ("French Script MT", "KaiTi")
 )
 /* Color */
 #let color = (
@@ -12,8 +15,17 @@
 
 /* Configurations */
 #let casual_text(body) = {
+  show: show-cn-fakebold
   set text(size: 14pt, font: font.text)
-  show strong: set text(rgb(170, 0, 0))
+  show emph: it => box(
+    text(it),
+    fill: yellow,
+    outset: 3pt,
+    radius: 3pt,
+  )
+  show strong: set text(
+    weight: "bold"
+  )
   set par(leading: 0.7em)
   body
 }
@@ -116,7 +128,106 @@
       bottom: 2pt
     ),
     breakable: false,
-    text(it, fill: color.heading)
+    text(
+      it,
+      fill: color.heading,
+      font: font.formal
+    )
+  )
+  body
+}
+
+#let casual_math(body) = {
+  show math.equation.where(block: true): it => (
+    v(10pt)
+      + block(
+        stroke: (left: blue + 5pt),
+        outset: (
+          left: 20pt,
+          right: 20pt,
+          top: 10pt,
+          bottom: 10pt,
+        ),
+        width: 100%,
+        text(it, fill: black),
+      )
+      + v(10pt)
+  )
+  show math.equation.where(block: false): it => box(
+    it
+  )
+  body
+}
+
+#let casual_code(body) = {
+  show raw: set text(size: 12pt)
+  show raw.where(block: true): it => align(
+    center,
+    block(
+      stroke: (
+        top: black,
+        bottom: black
+      ),
+      width: 110%,
+      {
+        set text(
+          font: font.code,
+          size: 14pt
+        )
+        let lines = it.text.trim().split("\n") 
+        
+        grid(
+          align: (center + top, left + top), 
+          columns: (2em, 1fr),
+          // 1. Dynamic inset handles BOTH the indentation and the top/bottom spacing
+          inset: (x, y) => (
+            left: if x == 1 { 10pt } else { 0pt }, 
+            right: 4pt,
+            top: if y == 0 { 12pt } else { 4pt },
+            bottom: if y == lines.len() - 1 { 12pt } else { 4pt }
+          ), 
+          fill: (x, y) => {
+            if x == 0 {
+              black
+            } else if calc.odd(y) {
+              none
+            } else {
+              olive.lighten(70%)
+            }
+          },
+          ..lines
+            .enumerate()
+            .map(((i, line)) => (
+              box(
+                text(size: 12pt, white)[#(i + 1)]
+              ),
+              raw(line, lang: it.lang),
+            ))
+            .flatten()
+        )
+      },
+    ),
+  )
+  body
+}
+
+#let casual_table(body) = {
+  set table(
+    fill: none,
+    align: center,
+    stroke: (x, y) => {
+      let styles = (:)
+      if y == 0 {
+        styles.insert("top", black)
+        styles.insert("bottom", black)
+      } else if y > 1 {
+        styles.insert("top", gray)
+      }
+      if x > 0 {
+        styles.insert("left", 0.5pt + gray)
+      }
+      return styles
+    },
   )
   body
 }
@@ -126,5 +237,8 @@
   show: casual_page
   show: casual_title
   show: casual_heading
+  show: casual_math
+  show: casual_code
+  show: casual_table
   body
 }
