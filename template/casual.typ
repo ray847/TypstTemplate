@@ -165,14 +165,16 @@
     center,
     block(
       stroke: (
-        top: black,
-        bottom: black
+        top: black + 3pt,
+        bottom: black + 3pt
       ),
       width: 110%,
       {
         set text(
           font: font.code,
-          size: 14pt
+          size: 14pt,
+          fill: rgb("#27b0ff"),
+          weight: "semibold"
         )
         let lines = it.text.trim().split("\n") 
         
@@ -186,20 +188,27 @@
             top: if y == 0 { 12pt } else { 4pt },
             bottom: if y == lines.len() - 1 { 12pt } else { 4pt }
           ), 
+          stroke: black,
           fill: (x, y) => {
             if x == 0 {
               black
             } else if calc.odd(y) {
-              none
+              white.darken(90%)
             } else {
-              olive.lighten(70%)
+              black
             }
           },
           ..lines
             .enumerate()
             .map(((i, line)) => (
               box(
-                text(size: 12pt, white)[#(i + 1)]
+                text(
+                  size: 12pt,
+                  white.darken(10%)
+                )[#i]
+              ),
+              grid.vline(
+                stroke: white.darken(90%) + 2pt
               ),
               raw(line, lang: it.lang),
             ))
