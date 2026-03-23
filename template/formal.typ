@@ -10,11 +10,11 @@
 /* Color */
 #let color = (
   text: black,
-  heading: gradient.linear(black, black)
+  heading: black
 )
 
 /* Configurations */
-#let casual_text(body) = {
+#let formal_text(body) = {
   show: show-cn-fakebold
   set text(size: 14pt, font: font.text)
   show emph: it => box(
@@ -29,7 +29,7 @@
   set par(leading: 0.7em)
   body
 }
-#let casual_page(body) = {
+#let formal_page(body) = {
   set page(
     paper: "a4",
     margin: (
@@ -40,7 +40,7 @@
     header: context {
       if counter(page).get().first() > 1 {
         align(
-          right,
+          center,
           text(
             document.title,
             font: font.formal,
@@ -52,30 +52,22 @@
     footer: context {
       if counter(page).get().first() > 1 {
         set text(font: font.formal)
-        grid(
-          columns: (1fr, 1fr, 1fr),
-          align(left, document.author.join(" & ")),
-          align(
-            center,
-            text(
-              counter(page).display(
-                "1 / 1",
-                both: true,
-              ),
-            )
+        align(center, text(
+          counter(page).display(
+            "1 / 1",
+            both: true,
           ),
-          align(right, box(width: 100%, clip: true, document.date.display())),
-        )
+        ))
       }
     },
   )
   body
 }
 
-#let casual_title(body) = {
+#let formal_title(body) = {
   show title: it => [
     #align(
-      right,
+      center,
       text(
         it,
         font: font.formal,
@@ -83,7 +75,7 @@
         size: 40pt,
       ),
     )
-    #v(0.5em)
+    #v(2.5em)
     #align(center, box(
       stroke: (
         top: black,
@@ -95,20 +87,13 @@
       ),
       width: 110%,
       (
-        h(1em) + 
         text(
           size: 17pt,
-          context document.author.join(" & "),
+          context document.author.join(" & ") + "\n" + context document.date.display(),
         )
-          + h(1fr)
-          + text(
-            size: 17pt,
-            context document.date.display(),
-          ) +
-        h(1em)
       ),
     ))
-    #v(1em)
+    #v(3em)
     #set text(size: 14pt, weight: "light")
     #outline(
       title: none,
@@ -119,33 +104,32 @@
   body
 }
 
-#let casual_heading(body) = {
-  set heading(numbering: "1.1")
+#let formal_heading(body) = {
+  set heading(numbering: "1 - 1")
   show heading: it => block(
     stroke: (
       bottom: 1pt
     ),
-    width: 85%,
+    width: 100%,
     inset: (
-      left: (it.level - 3) * 10pt,
       bottom: 7pt
     ),
     outset: (
-      left: -(it.level - 3)*10pt,
-      right: 3cm,
+      left: 20pt,
+      right: 20pt,
       bottom: 2pt
     ),
     breakable: false,
-    text(
+    align(center, text(
       it,
       fill: color.heading,
       font: font.formal
-    )
+    ))
   )
   body
 }
 
-#let casual_math(body) = {
+#let formal_math(body) = {
   show math.equation.where(block: true): it => (
     v(10pt)
       + block(
@@ -167,7 +151,7 @@
   body
 }
 
-#let casual_code(body) = {
+#let formal_code(body) = {
   show raw: set text(size: 12pt)
   show raw.where(block: true): it => align(
     center,
@@ -228,7 +212,7 @@
   body
 }
 
-#let casual_table(body) = {
+#let formal_table(body) = {
   set table(
     fill: none,
     align: center,
@@ -249,13 +233,13 @@
   body
 }
 
-#let casual(body) = {
-  show: casual_text
-  show: casual_page
-  show: casual_title
-  show: casual_heading
-  show: casual_math
-  show: casual_code
-  show: casual_table
+#let formal(body) = {
+  show: formal_text
+  show: formal_page
+  show: formal_title
+  show: formal_heading
+  show: formal_math
+  show: formal_code
+  show: formal_table
   body
 }

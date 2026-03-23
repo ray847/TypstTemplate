@@ -1,7 +1,8 @@
 #import "@preview/cetz:0.3.1": canvas, draw
 #import "template/casual.typ": casual
+#import "template/formal.typ": formal
 
-#show: casual
+#show: formal
 
 #set document(
   title: "Computer Architecture\nLab1 Report",
@@ -13,20 +14,11 @@
 
 = 实验要求
 
-#align(center)[
-  #block(
-    fill: rgb("#f7f7f7"),
-    inset: 16pt,
-    radius: 8pt,
-    align(left)[
-      本次实验的主要目标是使用 SystemVerilog 设计并实现一个 RISC-V 架构的 CPU。具体要求包括：
-      + *基础单周期*：实现支持基础整数指令集的单周期 CPU。
-      + *流水线改造*：在单周期基础上，将其改造为经典的五级流水线架构。
-      + *冒险处理*：解决流水线中的数据冒险与控制冒险。
-      + *验证与测试*：接入 Difftest 测试框架，保证指令提交时的架构状态与模拟器完全一致，并通过 `lab1-test.bin` 等功能测试。
-    ]
-  )
-]
+本次实验的主要目标是使用 SystemVerilog 设计并实现一个 RISC-V 架构的 CPU。具体要求包括：
++ *基础单周期*：实现支持基础整数指令集的单周期 CPU。
++ *流水线改造*：在单周期基础上，将其改造为经典的五级流水线架构。
++ *冒险处理*：解决流水线中的数据冒险与控制冒险。
++ *验证与测试*：接入 Difftest 测试框架，保证指令提交时的架构状态与模拟器完全一致，并通过 `lab1-test.bin` 等功能测试。
 
 = 单周期CPU架构
 
