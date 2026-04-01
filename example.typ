@@ -12,7 +12,7 @@
 
 #title()
 
-= 实验要求
+= 实验要求🤓😡#emoji.face.angry
 
 本次实验的主要目标是使用 SystemVerilog 设计并实现一个 RISC-V 架构的 CPU。具体要求包括：
 + *基础单周期*：实现支持基础整数指令集的单周期 CPU。

@@ -2,8 +2,8 @@
 
 /* Fonts */
 #let font = (
-  formal: ("Times New Roman", "FangSong"),
-  text: ("Bell MT", "SimSun"),
+  formal: ("Times New Roman", "FangSong", "Segoe UI Emoji"),
+  text: ("Bell MT", "SimSun", "Segoe UI Emoji"),
   code: ("Fira Code", "SimSun"),
   decorative: ("French Script MT", "KaiTi")
 )
