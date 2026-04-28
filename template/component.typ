@@ -138,7 +138,6 @@
     #box(
       fill: theme.colors.third,
       outset: (
-        left: 10em,
         right: 15pt,
         bottom: 12pt,
       ),
