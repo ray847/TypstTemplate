@@ -4,10 +4,11 @@
   code: ("Fira Code", "SimSun"),
   // decorative: ("Lucida Calligraphy", "KaiTi"),
   // decorative: ("Lucien Schoenschriftv CAT", "KaiTi"),
-  decorative: ("Edwardian Script ITC", "KaiTi"),
+  // decorative: ("Edwardian Script ITC", "KaiTi"),
+  // decorative: ("Monsieur La Doulaise", "KaiTi"),
   // decorative: ("Kunstler Script", "KaiTi"),
-  // decorative: ("Lucien Schoenschriftv CAT", "KaiTi"),
   // decorative: ("Palace Script MT", "KaiTi"),
+  decorative: ("Ballet 48pt", "KaiTi"),
 )
 
 #let shared_colors = (

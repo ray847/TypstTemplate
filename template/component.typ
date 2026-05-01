@@ -2,19 +2,25 @@
 #import "@preview/zebraw:0.6.1": *
 #import "@preview/typixel:0.1.1": *
 
+#let emph_builtin(body) = box(
+  fill: yellow,
+  outset: 3pt,
+  radius: 3pt,
+  body,
+)
+
+#let memph = emph_builtin
+
 #let themed_text(theme, body) = {
   show: show-cn-fakebold
   set text(size: theme.text.size, font: theme.fonts.text)
-  show emph: it => box(
-    text(it),
-    fill: yellow,
-    outset: 3pt,
-    radius: 3pt,
-  )
+  show emph: it => emph_builtin(text(it))
   show strong: set text(weight: "bold")
   set par(leading: theme.text.leading)
   body
 }
+
+#let emph = emph_builtin
 
 #let themed_math(body, theme) = {
   show math.equation.where(block: true): it => (
@@ -64,6 +70,7 @@
 }
 
 #let themed_table(theme, body) = {
+  show table: it => align(center, it)
   set table(
     fill: none,
     align: center,
@@ -138,16 +145,21 @@
     #box(
       fill: theme.colors.third,
       outset: (
-        right: 15pt,
-        bottom: 12pt,
+        top: 0pt,
+        right: 0pt,
+        left: 30pt,
+        bottom: 20pt,
       ),
       text(
         size: size * 2,
         fill: white,
         font: decorative_font,
+        stroke: white + 1pt,
         weight: "black",
-      )[#parts.first]
-        + h(5pt),
+        top-edge: "ascender",
+        bottom-edge: "bounds",
+        dir: auto,
+      )[#parts.first #h(30pt)],
     )
     #parts.rest
   ]

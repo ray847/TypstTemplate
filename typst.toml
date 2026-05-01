@@ -1,0 +1,6 @@
+[package]
+name = "report-template"
+version = "0.1.0"
+entrypoint = "lib.typ"
+authors = ["Ray"]
+description = "A Typst report template with casual and formal styles."

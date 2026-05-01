@@ -1,11 +1,10 @@
 #import "@preview/cetz:0.3.1": canvas, draw
-#import "template/casual.typ": casual
-#import "template/formal.typ": formal
+#import "lib.typ": casual, formal, emph
 
 #show: casual
 
 #set document(
-  title: "Computer Architecture Lab1 Report",
+  title: "CompArch Lab1 Report",
   author: "Ray",
   date: datetime.today(),
 )
@@ -132,7 +131,7 @@ end else if (counter != '0) begin
 我们将单周期与流水线 CPU 的性能进行了对比。评估 CPU 性能的核心公式为：
 
 $
-  "Execution Time" = "Instruction Count" times "CPI" times (1 / F_"max")
+  emph("Execution Time") = "Instruction Count" times "CPI" times (1 / F_"max")
 $
 
 #table(
