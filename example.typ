@@ -1,70 +1,71 @@
 #import "@preview/cetz:0.3.1": canvas, draw
-#import "lib.typ": casual, formal, emph
+#import "lib.typ": casual, emph, formal
 
-#show: casual
+#show: formal
 
 #set document(
-  title: "CompArch Lab1 Report",
+  title: "Computer Architecture Lab 1 Report",
   author: "Ray",
   date: datetime.today(),
 )
 
 #title()
 
-= 实验要求🤓😡#emoji.face.angry
+= Lab Requirements
 
-本次实验的主要目标是使用 SystemVerilog 设计并实现一个 RISC-V 架构的 CPU。具体要求包括：
-+ *基础单周期*：实现支持基础整数指令集的单周期 CPU。
-+ *流水线改造*：在单周期基础上，将其改造为经典的五级流水线架构。
-+ *冒险处理*：解决流水线中的数据冒险与控制冒险。
-+ *验证与测试*：接入 Difftest 测试框架，保证指令提交时的架构状态与模拟器完全一致，并通过 `lab1-test.bin` 等功能测试。
+The goal of this lab is to design and implement a RISC-V CPU in SystemVerilog. The main requirements are:
++ *Baseline single-cycle CPU*: Implement a single-cycle CPU that supports the base integer instruction set.
++ *Pipeline conversion*: Convert the single-cycle design into a classic five-stage pipeline.
++ *Hazard handling*: Resolve data hazards and control hazards in the pipeline.
++ *Verification and testing*: Connect the design to the Difftest framework so the committed architectural state matches the reference simulator, then pass functional tests such as `lab1-test.bin`.
 
-= 单周期CPU架构
+= Single-Cycle CPU Architecture
 
-单周期 CPU 是流水线设计的基础。在单周期架构中，每条指令的获取、译码、执行、访存和写回都在一个时钟周期内完成。虽然每指令周期数严格为 1.0，但由于关键路径过长（通常是从指令存储器经过 ALU 再到数据存储器），导致 CPU 的最高时钟频率非常低。
+The single-cycle CPU is the baseline for the later pipeline design. In this architecture, every instruction completes fetch, decode, execute, memory access, and write-back in one clock cycle. Although the cycles per instruction is strictly 1.0, the critical path is very long, usually running from instruction memory through the ALU and then to data memory. As a result, the maximum clock frequency is extremely low.
 
-= 流水线CPU架构
+= Pipelined CPU Architecture
 
-== 基础架构
-本实验实现了一个经典的五级流水线（取指、译码、执行、访存、写回）。此外，为了与 Difftest 框架的严格时序要求对齐，我们在写回阶段后新增了一个完整的提交阶段寄存器。这样可以完美解决时序逻辑（寄存器堆的时钟上升沿写回）与组合逻辑（Difftest 的检查点）之间的单周期同步偏差问题。
+== Baseline Pipeline
 
-我们在各个流水段之间加入了段间寄存器，将指令的数据流与元数据打包传递，践行了“一次译码，全局使用”的设计哲学，极大简化了后级流水线的控制逻辑。
+This lab implements a classic five-stage pipeline: instruction fetch, decode, execute, memory access, and write-back. To match the strict timing requirements of the Difftest framework, the design also adds a complete commit-stage register after write-back. This removes the one-cycle synchronization mismatch between sequential logic, such as register-file write-back on the rising edge, and the combinational checkpoint observed by Difftest.
 
-== 冒险解决机制
+Pipeline registers are inserted between stages so the instruction data flow and metadata are packaged and forwarded together. The design follows a "decode once, use everywhere" approach, which keeps the control logic in later stages much simpler.
 
-/ 数据冒险与数据转发: 为了解决读后写的数据冒险，我们引入了前递单元。当执行阶段或访存/写回阶段的指令目标寄存器与当前译码阶段指令的源寄存器发生重叠时，直接将旁路网络中的最新数据转发给执行阶段，避免了不必要的流水线停顿，提高了指令吞吐量。
-/ 控制冒险: 当遇到分支指令时，流水线会产生控制冒险。由于我们尚未引入动态分支预测器，目前采用的是静态预测不跳转结合冲刷机制。当执行阶段计算出实际需要跳转时，会将前端段间寄存器中的错误指令冲刷为气泡，并重置程序计数器重新取指。
+== Hazard Resolution
 
-== 异常处理与精确异常
+/ Data hazards and forwarding: To solve read-after-write hazards, the design introduces a forwarding unit. When the destination register of an instruction in the execute, memory, or write-back stage overlaps with a source register of the current decode-stage instruction, the newest value is forwarded directly to the execute stage. This avoids unnecessary pipeline stalls and improves instruction throughput.
+/ Control hazards: Branch instructions create control hazards. Because this design does not yet include a dynamic branch predictor, it uses static not-taken prediction plus flushing. When the execute stage discovers that a branch should be taken, the incorrect frontend pipeline registers are flushed and the program counter is redirected.
 
-为了正确处理程序退出时的自定义指令以及潜在的内存越界或非法指令，我们实现了一套基于“毒药位”的精确异常机制。
+== Exceptions and Precise State
 
-/ 非法指令标记: 当译码单元遇到无法识别的操作码时，不会立即触发停机，而是将其标记为非法指令并沿流水线向下传递。
-/ 幽灵指令过滤: 只有当该带毒指令真正到达提交阶段，且没有被前面的分支指令冲刷掉时，才会触发异常。这完美解决了由于分支预测失败导致前端错误抓取垃圾内存而引起的幽灵指令误报问题。
+To handle custom exit instructions, potential memory violations, and illegal instructions correctly, the CPU implements a precise exception mechanism based on a poison-bit style marker.
 
-有了该异常处理机构，整个项目就可以采用构造正确的范式，防止流水线上层的异常影响到后续步骤的进行。
+/ Illegal-instruction marking: When the decoder sees an unsupported opcode, it does not halt immediately. Instead, it marks the instruction as illegal and lets that metadata travel down the pipeline.
+/ Commit-stage filtering: The exception is only raised if the marked instruction reaches the commit stage and has not been flushed by an earlier branch. This prevents wrong-path instructions fetched after a branch misprediction from reporting false errors.
 
-== 模块化项目结构
+With this mechanism, the project follows a construction-by-correctness style: transient frontend mistakes cannot leak into later architectural state.
 
-本项目在架构设计上采用了高度解耦的模块化思想。顶层模块作为主板，负责实例化各个流水段并处理段间连线。其中执行阶段（EXU）被设计为一个极其灵活的调度封装层：
+== Modular Project Structure
 
-执行单元内部不再处理复杂的数据冒险，而是通过独立的“操作数解析单元”统一接收寄存器数据和前递网络数据，输出最准确的计算数。随后，执行单元根据指令类型，将操作数分发给底层的算术逻辑单元（ALU）、多周期乘法器或多周期除法器。这种分发与执行分离的架构，使得未来扩展浮点运算单元或自定义加速器变得非常容易。
+The CPU is organized as a set of loosely coupled modules. The top-level module instantiates each pipeline stage and wires the inter-stage registers. The execute stage, or EXU, is designed as a flexible dispatch layer.
 
-== 多周期乘法器 & 除法器
+Instead of handling complex hazard logic internally, the EXU receives already-selected operands from a dedicated operand selection unit. It then dispatches those operands to the ALU, the multi-cycle multiplier, or the multi-cycle divider according to the instruction type. This separation between dispatch and execution makes it much easier to add floating-point units or custom accelerators later.
 
-=== 乘法器
-/ 原理: 基于分块移位加法原理。由于单周期内完成 64 位乘法会导致关键路径过长，我们将计算过程按参数化周期进行拆分。例如设定为 4 周期时，每周期仅处理 16 位的乘法累加，通过状态机控制移位与累加过程，以此换取更高的主频。
-/ 实现: 模块内部维护了操作数移位寄存器和累加器。在收到使能信号的首个周期捕获操作数，随后在剩余周期内执行 `accumulator + op1 * op2[SEG-1:0]` 操作，并同步对操作数进行逻辑移位。
+== Multi-Cycle Multiplier and Divider
+
+=== Multiplier
+
+/ Principle: The multiplier is based on segmented shift-and-add accumulation. A 64-bit multiplication in one cycle would create a long critical path, so the operation is split across a parameterized number of cycles. For example, when the multiplier is configured for four cycles, each cycle processes 16 bits of the multiplier and accumulates the partial product.
+/ Implementation: The module maintains shifted operand registers and an accumulator. On the first enabled cycle, it captures the operands. On later cycles, it performs `accumulator + op1 * op2[SEG-1:0]` and shifts the operands for the next segment.
 
 ```sv
 accumulator <= accumulator + op1_reg * op2_reg[SEG - 1 : 0];
 op1_reg <= op1_reg << SEG;
 op2_reg <= op2_reg >> SEG;
 remain_cycles <= remain_cycles - 1;
-
 ```
 
-计算完成后拉高完成信号，与执行单元进行握手并解除流水线冻结。
+After the computation finishes, the module raises a done signal, handshakes with the execute stage, and releases the pipeline freeze.
 
 ```sv
 end else if (ack) begin
@@ -72,12 +73,12 @@ end else if (ack) begin
 end else if (remain_cycles != '0) begin
   ...
   if (remain_cycles == 1) done_reg <= 1'b1;
-
 ```
 
-=== 除法器
-/ 原理: 采用恢复余数法构建 64 周期状态机。除法器本质上是处理无符号运算的引擎，因此在输入阶段需要对有符号数进行绝对值转换。状态机通过逐次左移被除数并尝试减去除数，若够减则商位置 1，否则置 0。
-/ 实现: 在首个时钟周期，模块利用组合逻辑将操作数转换为绝对值并存入 128 位移位寄存器中，同时锁存符号信息。
+=== Divider
+
+/ Principle: The divider uses restoring division and a 64-cycle state machine. The core divider operates on unsigned values, so signed operands are first converted to absolute values. The state machine repeatedly shifts the divisor, attempts a subtraction, and emits either a one bit or a zero bit in the quotient.
+/ Implementation: On the first clock cycle, combinational preprocessing converts the operands to absolute values, stores them in 128-bit shift registers, and latches the final sign information.
 
 ```sv
 dividend    <= {64'b0, abs_op1};
@@ -85,10 +86,9 @@ divisor     <= {1'b0, abs_op2, 63'b0};
 ...
 quo_neg_reg <= (op2 != 0) && (op1_neg ^ op2_neg);
 rem_neg_reg <= op1_neg;
-
 ```
 
-在随后的 64 个周期中进行移位减法迭代。最终利用首个周期锁存的符号信息，通过后处理组合逻辑对商和余数进行符号还原。
+The next 64 cycles perform the shift-subtract iteration. Afterward, post-processing restores the signs of the quotient and remainder using the sign information captured in the first cycle.
 
 ```sv
 end else if (counter != '0) begin
@@ -100,35 +100,34 @@ end else if (counter != '0) begin
   end
   divisor <= divisor >> 1;
   counter <= counter - 1;
-
 ```
 
-== 问题与解决方案
+== Issues and Solutions
 
 #table(
   columns: (1.2fr, 2fr, 2.5fr),
-  [*核心问题*], [*场景与表现*], [*架构解决方案*],
+  table.header([Core issue], [Scenario and symptom], [Architectural solution]),
 
-  [数据转发优先级],
-  [访存阶段和写回阶段同时尝试向执行阶段的同一源寄存器前递数据时，较老数据可能覆盖最新数据。],
-  [在 SV 组合逻辑块中，先判定写回阶段（较老）前递条件，后判定访存阶段（较新）前递条件，通过*物理代码赋值的先后顺序*保证最新数据生效。],
+  [Forwarding priority],
+  [When the memory stage and write-back stage both try to forward data for the same source register, the older value can overwrite the newer value.],
+  [In the SystemVerilog combinational block, the write-back forwarding condition is checked first and the memory-stage condition is checked afterward. The physical assignment order ensures that the newest value takes priority.],
 
-  [瞬态数据陷阱\ (数据失效)],
-  [长周期乘除运算冻结了前端，但后级流水线排空导致前递网络提供的数据在第 2 周期彻底消失。],
-  [在乘除法器内部引入*元数据锁存机制*。第 0 周期利用 D 触发器永久锁存传入的操作数和符号位状态，彻底隔离外部流水线波动。],
+  [Transient-data loss],
+  [A long-latency multiply or divide freezes the frontend, while later stages drain. Forwarded operands can disappear from the bypass network by the second cycle.],
+  [The multiplier and divider latch operand metadata internally. Cycle 0 permanently captures the operands and sign bits in registers, isolating the operation from later pipeline movement.],
 
-  [除法器运算数截位],
-  [M 扩展的 32 位字指令传入 64 位物理寄存器，若高 32 位存在垃圾数据，将导致状态机得出荒谬结果。],
-  [在 ALU 内部构建*动态预处理通道*。识别字操作标志，动态对 32 位操作数进行零扩展或符号扩展至 64 位，保证状态机运算正确。],
+  [Divider operand truncation],
+  [RV64M word instructions pass 32-bit values through 64-bit physical registers. If the upper 32 bits contain stale data, the divider state machine can compute a nonsensical result.],
+  [The ALU adds a dynamic preprocessing path. It detects word operations and zero-extends or sign-extends the 32-bit operands to 64 bits before division.],
 
-  [除数=0非法情况],
-  [除数为 0 时商应当为全一（-1）。单纯按数学逻辑将产生的 -1 取补码翻转，会错误变为 +1。],
-  [利用恢复余数法除零自然生成全 1 的特性，在首周期锁存负号标志时加入屏蔽条件：*仅当除数非零且输入操作数异号时*，才允许取补码。零硬件成本符合规范。],
+  [Division by zero],
+  [For division by zero, the quotient should be all ones, or -1. If the ordinary signed post-processing path blindly negates that value, it can incorrectly become +1.],
+  [The restoring divider naturally produces all ones when the divisor is zero. The sign latch masks negation unless the divisor is nonzero and the input operands have opposite signs.],
 )
 
-= 性能测试
+= Performance Evaluation
 
-我们将单周期与流水线 CPU 的性能进行了对比。评估 CPU 性能的核心公式为：
+The performance comparison between the single-cycle CPU and the pipelined CPU uses the following core equation:
 
 $
   emph("Execution Time") = "Instruction Count" times "CPI" times (1 / F_"max")
@@ -138,7 +137,7 @@ $
   columns: 4,
   align: center,
   table.header(
-    [*Architecture*], [*Difftest IPC (lab1/lab1-extra)*], [*Critical Path Delay (ns)*], [*Estimated Frequency (MHz)*]
+    [Architecture], [Difftest IPC (lab1/lab1-extra)], [Critical Path Delay (ns)], [Estimated Frequency (MHz)]
   ),
   [Single Cycle], [0.500 / 0.500], [231.404], [~ 4.3],
   [#text("Pipeline\n(Mul Cycle=2)")], [0.500 / 0.038], [15.849], [~ 63.1],
@@ -148,20 +147,21 @@ $
   [#text("Pipeline\n(Mul Cycle=32)")], [0.500 / 0.035], [11.044], [~ 90.5],
 )
 
-== 测试环境与参数说明
+== Test Environment and Parameters
 
-本测试基于逻辑综合工具（如 Vivado）生成的时序报告来提取关键路径延迟（Critical Path Delay），并借此估算物理硬件所能达到的最高主频（$F_"max"$）。
-在指令吞吐率（IPC）的测试中，使用了两个不同的测试集：
-- `lab1`：以基础的 RV64I 整数运算与控制流为主。
-- `lab1-extra`：高强度包含 RV64M 扩展的乘法与除法指令，用于压榨多周期算件的性能。
+The timing results come from synthesis timing reports generated by tools such as Vivado. The critical path delay is extracted from those reports and used to estimate the maximum physical clock frequency, $F_"max"$.
 
-测试中的自变量 `Mul Cycle` 代表乘法器状态机被参数化拆分的周期数。周期数越小，单周期内需要计算的乘法位宽越大。
+Two workloads are used for IPC measurement:
+- `lab1`: Focuses on base RV64I integer operations and control flow.
+- `lab1-extra`: Heavily uses RV64M multiply and divide instructions, stressing the multi-cycle execution units.
 
-== 性能数据深度分析
+The parameter `Mul Cycle` is the number of cycles used by the multiplier state machine. A smaller cycle count means each cycle must handle a wider multiplication segment.
 
-数据清晰地揭示了计算机体系结构在物理实现层面的四大客观规律：
+== Performance Analysis
 
-+ *流水线带来的频率飞跃*：单周期架构由于必须在一个时钟周期内完成 64 位除法的全部组合逻辑（实质上是将 64 个减法器在物理空间上级联），导致关键路径延迟高达 231.4 ns，预估最高频率仅为 4.3 MHz。引入流水线并将乘除法改造为多周期状态机后，延迟瞬间骤降至 15.8 ns，使得芯片的物理主频实现了近 15 倍的飞跃。
-+ *DSP 硬宏与布线延迟墙*：在 `Mul Cycle` 为 4、8、16 时，关键路径延迟不仅没有明显下降，反而奇迹般地“平缓”停留在 13.68 ns。这并非逻辑错误，而是触碰到了 FPGA 的物理底层逻辑。综合工具会自动调用芯片内部固化的 DSP 切片（DSP Slices）来执行乘法。无论运算宽度如何，进入同一物理 DSP 模块的内部延迟与外部在芯片上的布线通勤延迟（Net Delay）是固定的，从而形成了一道物理延迟墙。
-+ *进位链的物理极限*：当 `Mul Cycle` 增加到 32 时，单周期乘法位宽缩小至仅 2 bit。此时综合工具放弃了庞大的全局 DSP 路由，转而使用更轻量的纯逻辑资源，使得延迟成功下探至 11.04 ns（约 90.5 MHz）。然而，它无法进一步下降，因为计算最终依赖于 64 位加法器（Accumulator），其进位链（Carry-Chain）的物理波纹传递时间构成了新的性能地板。
-+ *IPC 与频率的权衡 (Trade-off)*：对于 `lab1-extra` 这种乘除法密集型测试，随着 `Mul Cycle` 的增加（从 2 增加到 32），由于执行单元冻结流水线的时间变长，每周期指令提交数（IPC）出现了可见的下滑（从 0.038 降至 0.035）。这完美印证了架构设计中的核心矛盾：用牺牲指令级并行度（IPC）的代价，换取更短的关键路径与更高的全局时钟频率（$F_"max"$）。
+The data highlights four important facts about the physical implementation:
+
++ *Pipeline frequency improvement*: The single-cycle design must complete a full 64-bit divide in one clock cycle, effectively placing a long chain of subtractors in one critical path. This produces a 231.4 ns delay and an estimated frequency of only 4.3 MHz. After introducing the pipeline and converting multiply/divide into multi-cycle state machines, the delay drops to about 15.8 ns, producing a large frequency improvement.
++ *DSP and routing delay wall*: For `Mul Cycle` values of 4, 8, and 16, the critical path does not improve much and stays near 13.68 ns. This is not a logic bug; it reflects the FPGA implementation. The synthesis tool maps multiplication onto fixed DSP slices, and the internal DSP delay plus routing delay becomes roughly fixed across those widths.
++ *Carry-chain limit*: When `Mul Cycle` reaches 32, each cycle only multiplies a 2-bit segment. The synthesis tool can use lighter logic instead of a large DSP path, reducing the delay to about 11.04 ns. Further improvement is limited by the 64-bit accumulator, whose carry chain becomes the new physical floor.
++ *IPC and frequency trade-off*: On the multiply/divide-heavy `lab1-extra` workload, increasing `Mul Cycle` from 2 to 32 reduces IPC from 0.038 to 0.035 because the execute stage freezes the pipeline longer. This illustrates the architectural trade-off between instruction-level parallelism and a shorter global critical path.
