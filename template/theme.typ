@@ -15,7 +15,7 @@
     style: "normal",
   ),
   math: (
-    font: "Latin Modern",
+    font: "Latin Modern Math",
     weight: "regular",
     style: "normal",
   ),
