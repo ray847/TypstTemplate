@@ -15,7 +15,7 @@
     style: "normal",
   ),
   math: (
-    font: ("Latin Modern Math", "FangSong", "Segoe UI Emoji"),
+    font: "Latin Modern",
     weight: "regular",
     style: "normal",
   ),

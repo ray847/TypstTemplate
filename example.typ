@@ -13,6 +13,10 @@
 
 = Lab Requirements
 
+$
+  integral_Omega P dif x + Q dif y = integral.double_(|Omega|) ((partial P) / (partial y) + (partial Q) / (partial x)) dif x dif y
+$
+
 The goal of this lab is to design and implement a RISC-V CPU in SystemVerilog. The main requirements are:
 + *Baseline single-cycle CPU*: Implement a single-cycle CPU that supports the base integer instruction set.
 + *Pipeline conversion*: Convert the single-cycle design into a classic five-stage pipeline.
